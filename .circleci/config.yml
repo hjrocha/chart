@@ -383,7 +383,7 @@ workflows:
             branches:
               only:
                 - master
-                - force-new-versions
+                - test-github-sync-with-deployment
       - codacy/helm_aws:
           name: helm_lint
           cmd: helm lint codacy/
