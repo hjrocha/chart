@@ -416,6 +416,7 @@ workflows:
           filters:
             branches:
               only:
+                - test-gle
                 - master
       - codacy/helm_aws:
           name: helm_lint
