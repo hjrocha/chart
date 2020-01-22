@@ -1,6 +1,7 @@
 version: 2.1
 
 orbs:
+  # codacy: codacy/base@dev:2.2.0-featurepublishbespokecodacychart.6d1c309
   codacy: codacy/base@1.2.1
   slack: circleci/slack@3.4.2
 
@@ -20,7 +21,7 @@ references:
     working_directory: ~/workdir
 
   # doks node types can be found here https://developers.digitalocean.com/documentation/v2/
-  dev_environment: &dev_environment
+  unstable_environment: &unstable_environment
     DOKS_CLUSTER_NAME: codacy-doks-cluster-dev
     DO_TF_WORKSPACE: dev
     RELEASE_NAME: codacy
@@ -29,6 +30,18 @@ references:
     K8S_VERSION: 1.14
     NUM_NODES: 5
     HELM_REPOSITORY: codacy-unstable
+    CODACY_URL: http://k8s.unstable.dev.codacy.org
+
+  stable_environment: &stable_environment
+    DOKS_CLUSTER_NAME: codacy-doks-cluster-dev
+    DO_TF_WORKSPACE: dev
+    RELEASE_NAME: codacy-staging
+    NAMESPACE: codacy-staging
+    NODE_TYPE: s-20vcpu-96gb
+    K8S_VERSION: 1.14
+    NUM_NODES: 5
+    HELM_REPOSITORY: codacy-stable
+    CODACY_URL: http://k8s.staging.dev.codacy.org
 
   nightly_base_environment: &nightly_base_environment
     RELEASE_NAME: codacy-nightly
@@ -52,12 +65,12 @@ references:
   release_environment: &release_environment
     DOKS_CLUSTER_NAME: codacy-doks-cluster-release
     DO_TF_WORKSPACE: release
-    RELEASE_NAME: codacy-release
-    NAMESPACE: codacy-release
+    RELEASE_NAME: codacy-uat
+    NAMESPACE: codacy-uat
     NODE_TYPE: s-20vcpu-96gb
     K8S_VERSION: 1.15
     NUM_NODES: 4
-    CODACY_URL: http://release.dev.codacy.org
+    CODACY_URL: http://k8s.uat.dev.codacy.org
     HELM_REPOSITORY: codacy-incubator
 
   qa_environment_hourly: &qa_environment_hourly
@@ -98,6 +111,12 @@ references:
       name: "Setup DO Credentials"
       command: doctl auth init -t $DO_TOKEN &>/dev/null
 
+
+  doctl_set_kubeconfig: &doctl_set_kubeconfig
+      run:
+        name: "Set cluster in kubeconfig"
+        command: doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME" --set-current-context
+
   persist_to_workspace: &persist_to_workspace
     persist_to_workspace:
         root: ~/
@@ -115,6 +134,7 @@ references:
 
   deploy_to_cluster: &deploy_to_cluster
     steps:
+      - checkout
       - <<: *attach_workspace
       - <<: *helm_lint
       - <<: *doctl_authenticate
@@ -140,20 +160,23 @@ references:
           name: Rotate Pods
           command: make -C .doks/ rotate_pods NAMESPACE=$NAMESPACE
 
-  validate_deployment_status_on_cluster: &validate_deployment_status_on_cluster
-    steps:
-      - <<: *attach_workspace
-      - <<: *doctl_authenticate
-      - run:
+  validate_deployments: &validate_deployments
+      run:
           name: "Validate deployment status"
           command: |
             set -e
-            doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME" --set-current-context
             DEPLOYMENTS=$(kubectl get deployments -n "$NAMESPACE" | awk '{print "deployment/"$1}' | tail -n +2 )
             for DEPLOYMENT in ${DEPLOYMENTS[@]}
             do
                 kubectl rollout status -n "$NAMESPACE" --timeout=30m --watch "$DEPLOYMENT"
             done
+
+  validate_deployment_status_on_cluster: &validate_deployment_status_on_cluster
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - <<: *validate_deployments
 
   helm_push: &helm_push
     steps:
@@ -207,10 +230,16 @@ references:
             - <<: *persist_to_workspace
 
 jobs:
+  deploy_to_doks_unstable:
+    <<: *default_doks_image
+    environment:
+      <<: *unstable_environment
+    <<: *deploy_to_cluster
+
   deploy_to_doks:
     <<: *default_doks_image
     environment:
-      <<: *dev_environment
+      <<: *stable_environment
     <<: *deploy_to_cluster
 
   deploy_to_doks_hourly:
@@ -259,19 +288,31 @@ jobs:
     <<: *default_doks_image
     environment:
       <<: *qa_environment_hourly
-    <<: *validate_deployment_status_on_cluster
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - <<: *validate_deployments
 
   validate_deployment_status_nightly_1_14:
     <<: *default_doks_image
     environment:
       <<: *nightly_environment_1_14
-    <<: *validate_deployment_status_on_cluster
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - <<: *validate_deployments
 
   validate_deployment_status_nightly_1_15:
     <<: *default_doks_image
     environment:
       <<: *nightly_environment_1_15
-    <<: *validate_deployment_status_on_cluster
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - <<: *validate_deployments
 
   deploy_to_doks_release:
     <<: *default_doks_image
@@ -283,7 +324,11 @@ jobs:
     <<: *default_doks_image
     environment:
       <<: *release_environment
-    <<: *validate_deployment_status_on_cluster
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - <<: *validate_deployments
 
   helm_push_incubator:
     <<: *default_doks_image
@@ -330,7 +375,7 @@ jobs:
   test_api_dev:
     <<: *qa_automation_image
     environment:
-      <<: *dev_environment
+      <<: *stable_environment
       <<: *qa_environment_hourly
       TEST_PATH: Suite/Enterprise/K8S_HOURLY/API_DEV.xml
       LAUNCH_NAME: ENTERPRISE_API_HOURLY_TESTS
@@ -339,7 +384,7 @@ jobs:
   test_e2e_dev:
     <<: *qa_automation_image
     environment:
-      <<: *dev_environment
+      <<: *stable_environment
       <<: *qa_environment_hourly
       TEST_PATH: Suite/Enterprise/K8S_HOURLY/E2E_DEV.xml
       LAUNCH_NAME: ENTERPRISE_E2E_HOURLY_TESTS
@@ -348,7 +393,7 @@ jobs:
   test_web_dev:
     <<: *qa_automation_image
     environment:
-      <<: *dev_environment
+      <<: *stable_environment
       <<: *qa_environment_hourly
       TEST_PATH: Suite/Enterprise/K8S_HOURLY/WEB_DEV.xml
       LAUNCH_NAME: ENTERPRISE_WEB_HOURLY_TESTS
@@ -472,6 +517,56 @@ jobs:
           title: $(cat .version)
           message: $(cat changelogs/changelog.txt)
 
+  deploy_to_selfhosted_dev:
+    <<: *default_doks_image
+    environment:
+      RELEASE_NAME: codacy-unstable
+      NAMESPACE: codacy-unstable
+      CODACY_URL: http://k8s.unstable.dev.codacy.org
+      DOKS_CLUSTER_NAME: codacy-doks-cluster-dev
+    steps:
+      - <<: *attach_workspace
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - deploy:
+          name: Patch worker version
+          command: ytool -f "codacy/values.yaml" -s worker-manager.config.codacy.worker.image "unstable" -e
+      - deploy:
+          name: Poll for installation availability
+          command: |
+            TIMEOUT_IN_SECS=300
+            POLL_INTERVAL_IN_SECS=5
+            release=$(helm list | awk '{print $1}' | tail -n +2 | grep $RELEASE_NAME)
+            if [ "$release" == "$RELEASE_NAME" ]; then
+                    echo "Release '$RELEASE_NAME' found."
+                    for i in `seq 1 $(($TIMEOUT_IN_SECS / $POLL_INTERVAL_IN_SECS))`; do
+                        result=$(helm history $RELEASE_NAME --max=1 -o json)
+                        status=$(echo $result | jq .[].status)
+                        chart=$(echo $result | jq .[].chart)
+                        revision=$(echo $result | jq .[].revision)
+                        if [ "\"DEPLOYED\"" != "$status" ]; then
+                            echo "$chart: $revision is $status... waiting..."
+                        else
+                            echo "$RELEASE_NAME has no ongoing deployment... Proceeding..."
+                            exit 0
+                        fi
+                    done
+                    echo "Could not install $RELEASE_NAME! Please check the cluster state."
+                    exit 1
+            fi
+      - deploy:
+          name: Swap requirements files
+          command: |
+              mv codacy/requirements.yaml codacy/requirements_old.yaml
+              mv codacy/requirements-dev.yaml codacy/requirements.yaml
+      - deploy:
+          name: Install bespoke codacy chart
+          command: |
+              echo "Installing $RELEASE_NAME: $NAMESPACE"
+              make -C .doks/ deploy_to_doks RELEASE_NAME=$RELEASE_NAME NAMESPACE=$NAMESPACE CODACY_URL=$CODACY_URL
+              cat codacy/requirements.lock
+      - <<: *validate_deployments
+
 workflows:
   helm_lint:
     jobs:
@@ -484,6 +579,18 @@ workflows:
       - codacy/helm_aws:
           name: helm_lint
           cmd: helm lint codacy/
+          requires:
+            - codacy/checkout_and_version
+
+  test_deploy_unstable:
+    jobs:
+      - codacy/checkout_and_version:
+          filters:
+            branches:
+              only:
+                - feature/publish-dev-to-unstable
+      - deploy_to_selfhosted_dev:
+          context: CodacyDO
           requires:
             - codacy/checkout_and_version
 
