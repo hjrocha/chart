@@ -12,7 +12,7 @@ references:
 
   qa_automation_image: &qa_automation_image
     docker:
-      - image: codacy/qa-automation-test-runner:1.7.2
+      - image: codacy/qa-automation-test-runner:latest
       - image: selenium/standalone-chrome:3.141.0
         environment:
           JAVA_OPTS: -Xss256m -Xmx512m
@@ -354,6 +354,7 @@ jobs:
       LAUNCH_NAME: ENTERPRISE_WEB_HOURLY_TESTS
     <<: *qa_job
 
+
   set_chart_version_nightly:
     <<: *default_doks_image
     steps:
@@ -521,7 +522,7 @@ workflows:
           filters:
               branches:
                 only:
-                  - master
+                  - feature/hourly-tests
       - codacy/helm_aws:
           name: helm_lint
           cmd: helm lint codacy/
@@ -543,10 +544,14 @@ workflows:
           context: CodacyDO
           requires:
             - helm_push_unstable
-      - validate_deployment_status_hourly:
+      - rotate_pods_hourly:
           context: CodacyDO
           requires:
             - deploy_to_doks_hourly
+      - validate_deployment_status_hourly:
+          context: CodacyDO
+          requires:
+            - rotate_pods_hourly
       - test_api_dev:
           context: CodacyDO
           requires:
