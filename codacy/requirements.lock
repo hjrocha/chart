@@ -47,5 +47,5 @@ dependencies:
 - name: crow
   repository: https://charts.codacy.com/stable
   version: 4.4.0
-digest: sha256:230d8187818e868ee0a5bf8ac5777b001eff136b04c45b50e8c7726bd2411bd2
-generated: "2020-01-28T11:34:21.361285Z"
+digest: sha256:97f0c27c0c9f943dbba4db2c8c78b7f551a47017e01b4fba23f03f8b4d70e10c
+generated: "2020-01-28T14:43:06.312122Z"
