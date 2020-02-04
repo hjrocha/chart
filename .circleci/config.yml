@@ -530,7 +530,9 @@ jobs:
             - "df:83:d7:c7:d5:79:06:c2:3b:d1:fd:e2:a3:d1:12:c5"
       - deploy:
           name: Checkout codacy chart
-          command: git clone git@github.com:codacy/chart.git
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:codacy/chart.git
       - deploy:
           name: Patch worker version
           command: ytool -f "codacy/values.yaml" -s worker-manager.config.codacy.worker.image "unstable" -e
