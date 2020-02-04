@@ -535,12 +535,12 @@ jobs:
             git clone git@github.com:codacy/chart.git
       - deploy:
           name: Patch worker version
-          command: ytool -f "codacy/values.yaml" -s worker-manager.config.codacy.worker.image "unstable" -e
+          command: ytool -f "chart/codacy/values.yaml" -s worker-manager.config.codacy.worker.image "unstable" -e
       - deploy:
           name: Swap requirements files
           command: |
-              mv codacy/requirements.yaml codacy/requirements_old.yaml
-              mv codacy/requirements-dev.yaml codacy/requirements.yaml
+              mv chart/codacy/requirements.yaml chart/codacy/requirements_old.yaml
+              mv chart/codacy/requirements-dev.yaml chart/codacy/requirements.yaml
       - <<: *doctl_authenticate
       - <<: *doctl_set_kubeconfig
       - deploy:
