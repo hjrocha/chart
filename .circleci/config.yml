@@ -520,52 +520,39 @@ jobs:
   deploy_to_selfhosted_dev:
     <<: *default_doks_image
     environment:
-      RELEASE_NAME: codacy-unstable
-      NAMESPACE: codacy-unstable
+      RELEASE_NAME: codacy-dev
+      NAMESPACE: codacy-dev
       CODACY_URL: http://k8s.unstable.dev.codacy.org
       DOKS_CLUSTER_NAME: codacy-doks-cluster-dev
     steps:
-      - <<: *attach_workspace
-      - <<: *doctl_authenticate
-      - <<: *doctl_set_kubeconfig
+      - add_ssh_keys:
+          fingerprints:
+            - "df:83:d7:c7:d5:79:06:c2:3b:d1:fd:e2:a3:d1:12:c5"
+      - deploy:
+          name: Checkout codacy chart
+          command: git clone git@github.com:codacy/chart.git
       - deploy:
           name: Patch worker version
           command: ytool -f "codacy/values.yaml" -s worker-manager.config.codacy.worker.image "unstable" -e
-      - deploy:
-          name: Poll for installation availability
-          command: |
-            TIMEOUT_IN_SECS=300
-            POLL_INTERVAL_IN_SECS=5
-            release=$(helm list | awk '{print $1}' | tail -n +2 | grep $RELEASE_NAME)
-            if [ "$release" == "$RELEASE_NAME" ]; then
-                    echo "Release '$RELEASE_NAME' found."
-                    for i in `seq 1 $(($TIMEOUT_IN_SECS / $POLL_INTERVAL_IN_SECS))`; do
-                        result=$(helm history $RELEASE_NAME --max=1 -o json)
-                        status=$(echo $result | jq .[].status)
-                        chart=$(echo $result | jq .[].chart)
-                        revision=$(echo $result | jq .[].revision)
-                        if [ "\"DEPLOYED\"" != "$status" ]; then
-                            echo "$chart: $revision is $status... waiting..."
-                        else
-                            echo "$RELEASE_NAME has no ongoing deployment... Proceeding..."
-                            exit 0
-                        fi
-                    done
-                    echo "Could not install $RELEASE_NAME! Please check the cluster state."
-                    exit 1
-            fi
       - deploy:
           name: Swap requirements files
           command: |
               mv codacy/requirements.yaml codacy/requirements_old.yaml
               mv codacy/requirements-dev.yaml codacy/requirements.yaml
+      - <<: *doctl_authenticate
+      - <<: *doctl_set_kubeconfig
+      - deploy:
+          name: Poll for installation availability
+          command: |
+            helm plugin install https://github.com/codacy/helm-poll/releases/download/latest/helm-poll-linux.tgz
+            helm poll -r $RELEASE_NAME
       - deploy:
           name: Install bespoke codacy chart
           command: |
               echo "Installing $RELEASE_NAME: $NAMESPACE"
               make -C .doks/ deploy_to_doks RELEASE_NAME=$RELEASE_NAME NAMESPACE=$NAMESPACE CODACY_URL=$CODACY_URL
               cat codacy/requirements.lock
-      - <<: *validate_deployments
+      # - <<: *validate_deployments
 
 workflows:
   helm_lint:
