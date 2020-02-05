@@ -1,50 +1,50 @@
 global:
   defaultdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: accounts # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
   analysisdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: analysis # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
   resultsdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: results # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
   metricsdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: metrics # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
   filestoredb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: filestore # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
   jobsdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: jobs # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
 
@@ -52,7 +52,7 @@ codacy-api:
   ingress:
     enabled: true ## Enable ingress
     hosts:
-      - host: <example.codacy.org>
+      - host: <--- example.codacy.org --->
         paths:
         - /
     annotations:
@@ -65,7 +65,7 @@ codacy-api:
       nginx.ingress.kubernetes.io/use-regex: "true"
     tls:
       hosts:
-        - host: <example.codacy.org> # CHANGEME: Codacy application DNS
+        - host: <--- example.codacy.org ---> # CHANGEME: Codacy application DNS
       secretName: codacy-ingress-tls-secret
   replicaCount: 2
   resources:
@@ -97,10 +97,10 @@ activities:
       memory: 500Mi
   activitiesdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: activities # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
 
@@ -125,10 +125,10 @@ hotspots-api:
       memory: 500Mi
   hotspotsdb:
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: hotsposts # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
 
@@ -155,10 +155,10 @@ listener:
   listenerdb:
     create: false
     create: false
-    postgresqlUsername: codacy
+    postgresqlUsername: <--- codacy-database.internal --->
     postgresqlDatabase: listener # You need to create the DB manually
-    postgresqlPassword: codacy
-    host: codacy-database.internal
+    postgresqlPassword: <--- codacy_password --->
+    host: <--- codacy-database.internal --->
     service:
       port: 5432
 
