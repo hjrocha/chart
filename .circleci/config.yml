@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  codacy: codacy/base@1.2.1
+  codacy: codacy/base@dev:2.3.1-fixusechartrepoinmicrok8s.3416775
   slack: circleci/slack@3.4.2
 
 references:
@@ -395,6 +395,22 @@ jobs:
           message: $(cat changelogs/changelog.txt)
 
 workflows:
+  microk8s_deploy:
+      - codacy/checkout_and_version:
+          name: checkout_and_version
+          filters:
+            branches:
+              only:
+                - feature/test-install-microk8s
+
+      - codacy/microk8s_install:
+            name: install_micork8s
+            chart_dir_path: "."
+            wait_ready: false
+            clone_chart_source: false
+            requires:
+              - checkout_and_version
+
   helm_lint:
     jobs:
       - codacy/checkout_and_version:
@@ -403,6 +419,7 @@ workflows:
               ignore:
                 - master
                 - release
+                - feature/test-install-microk8s
       - codacy/helm_aws:
           name: helm_lint
           cmd: helm lint --set-string global.akka.sessionSecret="" codacy/
