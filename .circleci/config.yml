@@ -397,28 +397,30 @@ jobs:
 workflows:
   microk8s_deploy:
     jobs:
-      - codacy/checkout_and_version:
-          name: checkout_and_version
-          filters:
-            branches:
-              only:
-                - feature/test-install-microk8s
-      - codacy/helm_push:
-          name: helm_push_unstable_for_microk8s
-          context: CodacyDO
-          helm_dir: "."
-          chart_name: "codacy"
-          charts_repo_url: "https://charts.codacy.com/unstable"
-          update_image_version: false
-          requires:
-            - checkout_and_version
-
+      #- codacy/checkout_and_version:
+      #    name: checkout_and_version
+      #    filters:
+      #      branches:
+      #        only:
+      #          - feature/test-install-microk8s
+      #- codacy/helm_push:
+      #    name: helm_push_unstable_for_microk8s
+      #    context: CodacyDO
+      #    helm_dir: "."
+      #    chart_name: "codacy"
+      #    charts_repo_url: "https://charts.codacy.com/unstable"
+      #    update_image_version: false
+      #    requires:
+      #      - checkout_and_version
+      #- codacy/microk8s_install:
+      #      name: install_micork8s
+      #      helm_repo: "https://charts.codacy.com/unstable"
+      #      chart_version: $(cat .version)
+      #      requires:
+      #        - helm_push_unstable_for_microk8s
       - codacy/microk8s_install:
             name: install_micork8s
-            helm_repo: "https://charts.codacy.com/unstable"
-            chart_version: $(cat .version)
-            requires:
-              - helm_push_unstable_for_microk8s
+            helm_repo: "https://charts.codacy.com/stable"
 
   helm_lint:
     jobs:
