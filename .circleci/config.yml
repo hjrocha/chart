@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  codacy: codacy/base@dev:2.3.1-fixusechartrepoinmicrok8s.3416775
+  codacy: codacy/base@dev:2.3.1-fixusechartrepoinmicrok8s.77678f6
   slack: circleci/slack@3.4.2
 
 references:
@@ -403,12 +403,14 @@ workflows:
             branches:
               only:
                 - feature/test-install-microk8s
+      - helm_push_unstable:
+          context: CodacyDO
+          requires:
+            - checkout_and_version
 
       - codacy/microk8s_install:
             name: install_micork8s
-            chart_dir_path: "."
-            wait_ready: false
-            clone_chart_source: false
+            helm_repo: "https://charts.codacy.com/unstable"
             requires:
               - checkout_and_version
 
