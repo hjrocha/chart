@@ -405,6 +405,7 @@ workflows:
                 - feature/test-install-microk8s
       - codacy/helm_push:
           name: helm_push_unstable_for_microk8s
+          context: CodacyDO
           helm_dir: "."
           chart_name: "codacy"
           charts_repo_url: "https://charts.codacy.com/unstable"
