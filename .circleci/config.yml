@@ -404,10 +404,11 @@ workflows:
               only:
                 - feature/test-install-microk8s
       - codacy/helm_push:
-          name: helm_push_unstable
+          name: helm_push_unstable_for_microk8s
           helm_dir: "."
           chart_name: "codacy"
           charts_repo_url: "https://charts.codacy.com/unstable"
+          update_image_version: false
           requires:
             - checkout_and_version
 
@@ -416,7 +417,7 @@ workflows:
             helm_repo: "https://charts.codacy.com/unstable"
             chart_version: $(cat .version)
             requires:
-              - helm_push_unstable
+              - helm_push_unstable_for_microk8s
 
   helm_lint:
     jobs:
